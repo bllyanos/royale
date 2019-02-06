@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:400,700,900" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS"
+        crossorigin="anonymous">
+    <style>
+        body,
+        html {
+            font-family: 'Nunito';
+        }
+
+        /* .caps-control {
+            text-transform: uppercase;
+        } */
+    </style>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="./vue.js"></script>
+    <title>CLASHROYALE</title>
+</head>
+
+<body class="bg-dark text-white">
+    <div id="app" class="p-5">
+        <div class="container text-center">
+            <h1>{{title}}</h1>
+        </div>
+        <div class="container">
+            <div class="row bg-white text-dark rounded p-4 form-inline">
+                <input type="text" class="caps-control form-control w-50" v-model="tag" placeholder="Player TAG : ... (Without #)">
+                <button class="btn btn-dark ml-2" v-on:click="fetch">Fetch</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row bg-white text-dark rounded p-4 mt-3" v-if="loading">
+                <h2>Loading Data...</h2>
+            </div>
+        </div>
+
+        <div class="bg-white text-dark rounded container mt-3 py-3" v-if="player">
+            <h2>Player's Data</h2>
+            <div class="container border-bottom">
+            </div>
+            <div class="container  border-bottom">
+                <div class="row">
+                    <div class="col p-3">
+                        <h1>{{playerData.name}}</h1>
+                        <h5>{{playerData.tag}}</h5>
+                    </div>
+                    <div class="col">
+                        <h3>Trophies : {{playerData.trophies}}</h3>
+                        <h3>{{playerData.arena.name}}</h3>
+                        <p>{{playerData.arena.arena}}</p>
+                    </div>
+                </div>
+
+            </div>
+            <div class="container border-bottom">
+                <div class="row">
+                    <h2>Clan</h2>
+                    <div class="col p-3">
+                        <h2>{{playerData.clan.name}}</h2>
+                        <h5>{{playerData.clan.role}}</h5>
+                    </div>
+                    <div class="col-2 p-3">
+                        <img src="https://royaleapi.github.io/cr-api-assets/badges/A_Char_Hammer_02.png" alt="">
+                    </div>
+                    <div class="col">
+                        <h3>Donation : {{playerData.clan.donations}}</h3>
+                        <h3>Received : {{playerData.clan.donationsReceived}}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="container border-bottom py-2">
+                <h2>Current Deck</h2>
+                <br>
+                <img class="mr-2" style="height:70px; width:auto" :src="c.icon" v-for="(c,index) in playerData.currentDeck">
+            </div>
+            <div class="container border-bottom py-2">
+                <h2>Battles</h2>
+                <br>
+                <div v-if="loadingBattle">
+                    Loading battle stats
+                </div>
+                <div v-if="battle" class="battles">
+                    <div :key="index" class="battle row border-bottom" v-for="(b,index) in battles">
+                        <div class="col text-center">
+                            {{b.team[0].name}}
+                            <br>
+                            <img class="mr-2" style="height:40px; width:auto" :src="c.icon" v-for="(c,index) in b.team[0].deck">
+                        </div>
+                        <div class="col-2 text-center">
+                            <p v-if="b.teamCrowns > b.opponentCrowns" class="text-primary">
+                                {{b.teamCrowns}} vs {{b.opponentCrowns}}
+                            </p>
+                            <p v-if="b.teamCrowns < b.opponentCrowns" class="text-danger">
+                                {{b.teamCrowns}} vs {{b.opponentCrowns}}
+                            </p>
+                            <p v-if="b.teamCrowns == b.opponentCrowns" class="text-dark">
+                                {{b.teamCrowns}} vs {{b.opponentCrowns}}
+                            </p>
+                        </div>
+                        <div class="col text-center">
+                            {{b.opponent[0].name}}
+                            <br>
+                            <img class="mr-2" style="height:40px; width:auto" :src="c.icon" v-for="(c,index) in b.opponent[0].deck">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                title: 'CLASHROYALE DATA EXTRACTOR',
+                tag: '28UGQ2P9',
+                battles: [],
+                playerData: {},
+                player: false,
+                loading: false,
+                battle: false,
+                loadingBattle: false,
+            },
+            methods: {
+                loadBattle: function () {
+                    this.loadingBattle = true;
+                    let self = this;
+                    axios.get('https://api.royaleapi.com/player/' + this.tag + '/battles', {
+                        headers: {
+                            "Content-Type": "application/json",
+                            auth: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MjMyOSwiaWRlbiI6IjIxMjU0MzkwNjkyNjAzNDk0NCIsIm1kIjp7fSwidHMiOjE1NDk0NjE2NzI4Mzd9.EaayfSmXF1INB6djAgorP2R7ZMxaT2KptVC0C6dMs0c',
+                        }
+                    })
+                        .then(function (resp) {
+                            self.battles = [];
+                            for (let i = 0; i < resp.data.length; i++) {
+                                if (resp.data[i].teamSize <= 1) {
+                                    self.battles.push(resp.data[i]);
+                                }
+                            }
+                            console.log(self.battles)
+                            self.battle = true;
+                            self.loadingBattle = false;
+                        })
+                        .catch(function (err) {
+                            self.battle = false;
+                            self.loadingBattle = false;
+                            console.log(err);
+                        })
+                },
+                fetch: function () {
+                    this.loading = true;
+                    let self = this;
+                    axios.get('https://api.royaleapi.com/player/' + this.tag, {
+                        headers: {
+                            "Content-Type": "application/json",
+                            auth: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MjMyOSwiaWRlbiI6IjIxMjU0MzkwNjkyNjAzNDk0NCIsIm1kIjp7fSwidHMiOjE1NDk0NjE2NzI4Mzd9.EaayfSmXF1INB6djAgorP2R7ZMxaT2KptVC0C6dMs0c',
+                        }
+                    })
+                        .then(function (resp) {
+                            self.playerData = resp.data;
+                            console.log(self.playerData)
+                            self.player = true;
+                            self.loading = false;
+                            self.loadBattle();
+                        })
+                        .catch(function (err) {
+                            self.player = false;
+                            self.loading = false;
+                            console.log(err);
+                        })
+                }
+            },
+            mounted: function () {
+                this.fetch()
+            }
+        })
+    </script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
